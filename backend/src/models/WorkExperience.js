@@ -25,6 +25,11 @@ const workExperienceSchema = new mongoose.Schema(
       required: true,
       trim: true,
     },
+    department: {
+      type: String,
+      default: 'Main Kitchen',
+      trim: true,
+    },
     startDate: {
       type: String,
       required: true,
@@ -32,6 +37,10 @@ const workExperienceSchema = new mongoose.Schema(
     endDate: {
       type: String,
       default: 'Present',
+    },
+    isCurrent: {
+      type: Boolean,
+      default: false,
     },
     referenceName: {
       type: String,

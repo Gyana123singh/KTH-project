@@ -77,6 +77,42 @@ const profileSchema = new mongoose.Schema(
       type: Number,
       default: 0,
     },
+    nationality: {
+      type: String,
+      default: 'Indian',
+    },
+    socialLinks: {
+      linkedin: { type: String, default: '' },
+      portfolio: { type: String, default: '' },
+      instagram: { type: String, default: '' },
+    },
+    preferredJobTitle: {
+      type: String,
+      default: '',
+    },
+    preferredLocation: {
+      type: String,
+      default: '',
+    },
+    skills: {
+      type: [String],
+      default: [],
+    },
+    education: [
+      {
+        degree: { type: String, default: '' },
+        institute: { type: String, default: '' },
+        fieldOfStudy: { type: String, default: '' },
+        passingYear: { type: String, default: '' },
+      },
+    ],
+    certifications: [
+      {
+        title: { type: String, default: '' },
+        issuingOrganization: { type: String, default: '' },
+        yearObtained: { type: String, default: '' },
+      },
+    ],
     hasVoiceProfile: {
       type: Boolean,
       default: false,
@@ -88,6 +124,10 @@ const profileSchema = new mongoose.Schema(
     voiceInputOriginalText: {
       type: String,
       default: null,
+    },
+    isPublished: {
+      type: Boolean,
+      default: false,
     },
   },
   {

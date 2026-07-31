@@ -157,8 +157,204 @@ const getMe = async (req, res) => {
   }
 };
 
+// @desc    Send 6-digit OTP to user email for mobile onboarding (PRD Mobile Flow)
+// @route   POST /api/auth/send-otp
+// @access  Public
+const sendOTP = async (req, res) => {
+  try {
+    const { email } = req.body;
+    if (!email) {
+      return res.status(400).json({ success: false, message: 'Please provide email address' });
+    }
+
+    const cleanEmail = email.toLowerCase().trim();
+    let user = await User.findOne({ email: cleanEmail });
+
+    // Generate dynamic 6-digit OTP code (e.g. 849204)
+    const generatedOTP = Math.floor(100000 + Math.random() * 900000).toString(); 
+    const otpExpiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 mins expiry
+
+    if (!user) {
+      // Create candidate user placeholder if registering via mobile email
+      const userName = cleanEmail.split('@')[0];
+      user = await User.create({
+        name: userName.charAt(0).toUpperCase() + userName.slice(1),
+        email: cleanEmail,
+        role: 'employee',
+        otp: generatedOTP,
+        otpExpiresAt,
+      });
+
+      // Create talent profile
+      const profileCount = await Profile.countDocuments();
+      const publicId = `EMP-${1000 + profileCount + 1}`;
+      await Profile.create({
+        userId: user._id,
+        publicId,
+        name: user.name,
+        email: user.email,
+        currentPosition: 'Line Cook',
+        currentDepartment: 'Culinary Arts',
+      });
+    } else {
+      user.otp = generatedOTP;
+      user.otpExpiresAt = otpExpiresAt;
+      await user.save();
+    }
+
+    // Trigger real-time email dispatch using Nodemailer email service
+    const { sendOTPEmail } = require('../utils/emailService');
+    await sendOTPEmail(cleanEmail, generatedOTP);
+
+    return res.json({
+      success: true,
+      message: `OTP code sent successfully to ${cleanEmail}`,
+      otp: generatedOTP, // Also returned in API response for easy local testing
+    });
+  } catch (error) {
+    console.error('[Auth Controller Send OTP Error]:', error);
+    return res.status(500).json({ success: false, message: 'Failed to send OTP', error: error.message });
+  }
+};
+
+// @desc    Verify 6-digit OTP & return token with create-profile redirection (PRD Mobile Flow)
+// @route   POST /api/auth/verify-otp
+// @access  Public
+const verifyOTP = async (req, res) => {
+  try {
+    const { email, otp } = req.body;
+    if (!email || !otp) {
+      return res.status(400).json({ success: false, message: 'Please provide email and OTP code' });
+    }
+
+    const cleanEmail = email.toLowerCase().trim();
+    const user = await User.findOne({ email: cleanEmail });
+
+    if (!user) {
+      return res.status(404).json({ success: false, message: 'User with this email not found' });
+    }
+
+    // Verify OTP code (Accepts generatedOTP or test bypass '000000' or '123456')
+    if (otp !== '000000' && otp !== '123456' && user.otp !== otp) {
+      return res.status(400).json({ success: false, message: 'Invalid OTP code. Please check and try again.' });
+    }
+
+    user.isEmailVerified = true;
+    user.otp = null;
+    await user.save();
+
+    let profile = await Profile.findOne({ userId: user._id });
+
+    // If profile doesn't exist, create initial candidate profile
+    if (!profile) {
+      const profileCount = await Profile.countDocuments();
+      const publicId = `EMP-${1000 + profileCount + 1}`;
+      profile = await Profile.create({
+        userId: user._id,
+        publicId,
+        name: user.name,
+        email: user.email,
+        currentPosition: 'Line Cook',
+        currentDepartment: 'Culinary Arts',
+      });
+    }
+
+    const token = generateToken({ id: user._id, role: user.role, email: user.email });
+
+    // Determine redirection route: if profile is not published, send to /create-profile
+    const redirectTo = profile.isPublished ? '/profile-dashboard' : '/create-profile';
+
+    return res.json({
+      success: true,
+      message: 'OTP verified successfully! Redirecting to profile setup.',
+      token,
+      redirectTo,
+      isProfileComplete: profile.isPublished,
+      user: {
+        id: user._id,
+        name: user.name,
+        email: user.email,
+        role: user.role,
+        isEmailVerified: user.isEmailVerified,
+      },
+      profile,
+    });
+  } catch (error) {
+    console.error('[Auth Controller Verify OTP Error]:', error);
+    return res.status(500).json({ success: false, message: 'Failed to verify OTP', error: error.message });
+  }
+};
+
+// @desc    Authenticate or register candidate via Google Auth (PRD Mobile Flow Image 1)
+// @route   POST /api/auth/google-login
+// @access  Public
+const googleLogin = async (req, res) => {
+  try {
+    const { email, name, googleId, avatar } = req.body;
+
+    if (!email) {
+      return res.status(400).json({ success: false, message: 'Please provide email from Google Authentication' });
+    }
+
+    const cleanEmail = email.toLowerCase().trim();
+    let user = await User.findOne({ email: cleanEmail });
+
+    if (!user) {
+      // Auto-register candidate user via Google Auth
+      user = await User.create({
+        name: name || cleanEmail.split('@')[0],
+        email: cleanEmail,
+        role: 'employee',
+        avatar: avatar || 'https://i.pravatar.cc/150?img=1',
+        isEmailVerified: true,
+      });
+
+      const profileCount = await Profile.countDocuments();
+      const publicId = `EMP-${1000 + profileCount + 1}`;
+      await Profile.create({
+        userId: user._id,
+        publicId,
+        name: user.name,
+        email: user.email,
+        photo: user.avatar,
+        currentPosition: 'Line Cook',
+        currentDepartment: 'Culinary Arts',
+      });
+    }
+
+    let profile = await Profile.findOne({ userId: user._id });
+
+    const token = generateToken({ id: user._id, role: user.role, email: user.email });
+    const redirectTo = profile.isPublished ? '/profile-dashboard' : '/create-profile';
+
+    return res.json({
+      success: true,
+      message: 'Google login successful',
+      token,
+      redirectTo,
+      isProfileComplete: profile.isPublished,
+      user: {
+        id: user._id,
+        name: user.name,
+        email: user.email,
+        role: user.role,
+        avatar: user.avatar,
+      },
+      profile,
+    });
+  } catch (error) {
+    console.error('[Auth Controller Google Login Error]:', error);
+    return res.status(500).json({ success: false, message: 'Failed to complete Google authentication', error: error.message });
+  }
+};
+
 module.exports = {
   registerUser,
   loginUser,
   getMe,
+  sendOTP,
+  verifyOTP,
+  googleLogin,
 };
+
+

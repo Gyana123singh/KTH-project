@@ -153,7 +153,33 @@ const seedDB = async () => {
         experience: `${expYears} Years`,
         location: LOCATIONS[i % LOCATIONS.length],
         cuisineType: ['French', 'Italian', 'Modern American', 'Japanese'][i % 4],
-        languages: ['English', 'Spanish', 'Hindi'][i % 3] ? ['English', ['Spanish', 'Hindi'][i % 2]] : ['English'],
+        languages: ['English', 'Hindi', 'Spanish', 'Bengali', 'Marathi', 'Tamil'][i % 6]
+          ? ['English', ['Hindi', 'Bengali', 'Marathi', 'Tamil'][i % 4]]
+          : ['English'],
+        nationality: 'Indian',
+        socialLinks: {
+          linkedin: `https://linkedin.com/in/${name.toLowerCase().replace(/[^a-z0-9]/g, '')}`,
+          portfolio: `https://${name.toLowerCase().replace(/[^a-z0-9]/g, '')}.com`,
+          instagram: `@chef_${name.toLowerCase().split(' ')[0]}`,
+        },
+        preferredJobTitle: pos,
+        preferredLocation: LOCATIONS[i % LOCATIONS.length],
+        skills: ['Culinary Arts', 'Food Safety', 'Menu Planning', 'Pastry & Baking', 'Hygiene & Sanitation', 'Kitchen Management'],
+        education: [
+          {
+            degree: 'B.Sc in Culinary Arts',
+            institute: 'IHM Mumbai',
+            fieldOfStudy: 'Hotel Management & Culinary',
+            passingYear: '2021',
+          },
+        ],
+        certifications: [
+          {
+            title: 'HACCP Level 3 Food Safety',
+            issuingOrganization: 'FSSAI',
+            yearObtained: '2022',
+          },
+        ],
         status: i % 7 === 0 ? 'Pending Verification' : i % 11 === 0 ? 'Inactive' : 'Active',
         rating: Number((4.0 + (i % 10) * 0.1).toFixed(1)),
         publicViews: 120 + i * 43,

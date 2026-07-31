@@ -135,7 +135,9 @@ const updateEmployeeDirect = async (req, res) => {
     const allowedFields = [
       'name', 'photo', 'about', 'currentPosition', 'currentDepartment',
       'experienceYears', 'experience', 'location', 'cuisineType', 'languages',
-      'status', 'rating', 'phone', 'email', 'hasVoiceProfile', 'voiceProfileUrl'
+      'status', 'rating', 'phone', 'email', 'nationality', 'socialLinks',
+      'preferredJobTitle', 'preferredLocation', 'skills', 'education',
+      'certifications', 'hasVoiceProfile', 'voiceProfileUrl', 'isPublished'
     ];
 
     allowedFields.forEach((field) => {

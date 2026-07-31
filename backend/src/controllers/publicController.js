@@ -19,6 +19,18 @@ const getPublicProfile = async (req, res) => {
     profile.publicViews += 1;
     await profile.save();
 
+    // Trigger real-time notification to candidate
+    const { sendNotification } = require('./notificationController');
+    sendNotification({
+      userId: profile.userId,
+      userPublicId: profile.publicId,
+      title: 'Profile Viewed! 👀',
+      message: `Someone just viewed your KTH professional identity CV profile (${profile.publicViews} total views).`,
+      type: 'profile_view',
+      link: `/u/${profile.publicId}`,
+      icon: 'eye',
+    });
+
     const workHistory = await WorkExperience.find({ profileId: profile._id }).sort({ createdAt: -1 });
 
     const fullProfile = {
@@ -123,7 +135,38 @@ const searchTalent = async (req, res) => {
   }
 };
 
+// @desc    Get QR Code for public profile
+// @route   GET /api/public/profiles/:publicId/qr
+// @access  Public (No Login Required)
+const getPublicProfileQR = async (req, res) => {
+  try {
+    const { publicId } = req.params;
+    const profile = await Profile.findOne({ publicId: publicId.toUpperCase() });
+    if (!profile) {
+      return res.status(404).json({ success: false, message: 'Talent profile not found' });
+    }
+
+    const publicUrl = `https://kth.app/u/${profile.publicId}`;
+    const { generateQRCodeDataUrl, generateQRCodeSVG } = require('../utils/qrGenerator');
+    const qrCodeDataUrl = await generateQRCodeDataUrl(publicUrl);
+    const qrCodeSvg = await generateQRCodeSVG(publicUrl);
+
+    return res.json({
+      success: true,
+      publicId: profile.publicId,
+      publicUrl,
+      qrCodeDataUrl,
+      qrCodeSvg,
+    });
+  } catch (error) {
+    console.error('[Public Controller QR Error]:', error);
+    return res.status(500).json({ success: false, message: 'Failed to generate QR Code', error: error.message });
+  }
+};
+
 module.exports = {
   getPublicProfile,
   searchTalent,
+  getPublicProfileQR,
 };
+

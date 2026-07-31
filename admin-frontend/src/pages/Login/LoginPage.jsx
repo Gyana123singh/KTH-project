@@ -50,8 +50,8 @@ export const LoginPage = () => {
         transition={{ duration: 0.4 }}
         className="w-full max-w-5xl bg-white rounded-3xl shadow-2xl overflow-hidden grid grid-cols-1 lg:grid-cols-12 border border-slate-800/40 z-10"
       >
-        {/* Left Illustration / Branding Side */}
-        <div className="lg:col-span-5 bg-gradient-to-br from-teal-900 via-teal-800 to-slate-900 p-8 lg:p-12 text-white flex flex-col justify-between relative overflow-hidden">
+        {/* Left Illustration / Branding Side (Desktop: Left/Order 1, Mobile: Bottom/Order 2) */}
+        <div className="order-2 lg:order-1 lg:col-span-5 bg-gradient-to-br from-teal-900 via-teal-800 to-slate-900 p-8 lg:p-12 text-white flex flex-col justify-between relative overflow-hidden">
           <div className="absolute -right-10 -bottom-10 w-64 h-64 bg-teal-500/10 rounded-full blur-2xl" />
 
           <div className="relative z-10">
@@ -91,8 +91,8 @@ export const LoginPage = () => {
           </div>
         </div>
 
-        {/* Right Form Side */}
-        <div className="lg:col-span-7 p-8 sm:p-12 flex flex-col justify-center bg-white">
+        {/* Right Form Side (Desktop: Right/Order 2, Mobile: Top/Order 1) */}
+        <div className="order-1 lg:order-2 lg:col-span-7 p-8 sm:p-12 flex flex-col justify-center bg-white">
           <div className="max-w-md mx-auto w-full">
             <div className="mb-8">
               <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-teal-50 text-teal-800 text-xs font-bold mb-3 border border-teal-200">

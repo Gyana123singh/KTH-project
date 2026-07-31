@@ -1,74 +1,28 @@
-const crypto = require('crypto');
+const jwt = require('jsonwebtoken');
 
 const SECRET = process.env.JWT_SECRET || 'kth_kitchen_talent_hub_secret_key_2026_v1';
 
-function base64UrlEncode(str) {
-  return Buffer.from(str)
-    .toString('base64')
-    .replace(/=/g, '')
-    .replace(/\+/g, '-')
-    .replace(/\//g, '_');
+/**
+ * Generates a signed JWT token for user authentication.
+ * @param {Object} payload - Data payload to encode in token (id, role, email)
+ * @param {String} expiresIn - Expiration duration (default '7d')
+ * @returns {String} Signed JWT token string
+ */
+function generateToken(payload, expiresIn = '7d') {
+  return jwt.sign(payload, SECRET, {
+    expiresIn,
+  });
 }
 
-function base64UrlDecode(str) {
-  str = str.replace(/-/g, '+').replace(/_/g, '/');
-  while (str.length % 4) {
-    str += '=';
-  }
-  return Buffer.from(str, 'base64').toString('utf8');
-}
-
-function generateToken(payload, expiresInSeconds = 7 * 24 * 3600) {
-  const header = { alg: 'HS256', typ: 'JWT' };
-  const now = Math.floor(Date.now() / 1000);
-  const fullPayload = {
-    ...payload,
-    iat: now,
-    exp: now + expiresInSeconds,
-  };
-
-  const encodedHeader = base64UrlEncode(JSON.stringify(header));
-  const encodedPayload = base64UrlEncode(JSON.stringify(fullPayload));
-
-  const signature = crypto
-    .createHmac('sha256', SECRET)
-    .update(`${encodedHeader}.${encodedPayload}`)
-    .digest('base64')
-    .replace(/=/g, '')
-    .replace(/\+/g, '-')
-    .replace(/\//g, '_');
-
-  return `${encodedHeader}.${encodedPayload}.${signature}`;
-}
-
+/**
+ * Verifies and decodes a JWT token.
+ * @param {String} token - JWT token string from Authorization header
+ * @returns {Object|null} Decoded token payload if valid, null if invalid or expired
+ */
 function verifyToken(token) {
   try {
     if (!token) return null;
-    const parts = token.split('.');
-    if (parts.length !== 3) return null;
-
-    const [encodedHeader, encodedPayload, signature] = parts;
-
-    const expectedSignature = crypto
-      .createHmac('sha256', SECRET)
-      .update(`${encodedHeader}.${encodedPayload}`)
-      .digest('base64')
-      .replace(/=/g, '')
-      .replace(/\+/g, '-')
-      .replace(/\//g, '_');
-
-    if (signature !== expectedSignature) {
-      return null;
-    }
-
-    const payload = JSON.parse(base64UrlDecode(encodedPayload));
-    const now = Math.floor(Date.now() / 1000);
-
-    if (payload.exp && payload.exp < now) {
-      return null; // Expired token
-    }
-
-    return payload;
+    return jwt.verify(token, SECRET);
   } catch (error) {
     return null;
   }

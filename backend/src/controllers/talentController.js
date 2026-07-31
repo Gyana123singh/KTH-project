@@ -69,6 +69,19 @@ const updateMyProfile = async (req, res) => {
 
     const workHistory = await WorkExperience.find({ profileId: profile._id });
 
+    const { emitAdminEvent, emitProfileEvent } = require('../config/socket');
+    emitAdminEvent('candidate-profile-updated', {
+      publicId: profile.publicId,
+      name: profile.name,
+      currentPosition: profile.currentPosition,
+    });
+    emitProfileEvent(profile.publicId, 'profile-updated', {
+      profile: {
+        ...profile.toObject(),
+        workHistory,
+      },
+    });
+
     return res.json({
       success: true,
       message: 'Profile updated successfully',

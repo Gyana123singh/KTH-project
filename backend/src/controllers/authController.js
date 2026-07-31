@@ -67,6 +67,14 @@ const registerUser = async (req, res) => {
 
     const token = generateToken({ id: user._id, role: user.role, email: user.email });
 
+    const { emitAdminEvent } = require('../config/socket');
+    emitAdminEvent('new-user-registered', {
+      userId: user._id,
+      name: user.name,
+      email: user.email,
+      role: user.role,
+    });
+
     return res.status(201).json({
       success: true,
       message: 'User registered successfully',

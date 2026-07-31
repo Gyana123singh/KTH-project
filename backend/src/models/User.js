@@ -1,5 +1,5 @@
 const mongoose = require('mongoose');
-const crypto = require('crypto');
+const bcrypt = require('bcryptjs');
 
 const userSchema = new mongoose.Schema(
   {
@@ -41,21 +41,23 @@ const userSchema = new mongoose.Schema(
   }
 );
 
-// Method to hash password using Node native crypto
+// Synchronous password hashing method using bcryptjs
 userSchema.statics.hashPassword = function (password) {
-  const salt = crypto.randomBytes(16).toString('hex');
-  const hash = crypto.pbkdf2Sync(password, salt, 1000, 64, 'sha512').toString('hex');
-  return `${salt}:${hash}`;
+  const salt = bcrypt.genSaltSync(10);
+  return bcrypt.hashSync(password, salt);
 };
 
-// Method to verify password
+// Method to verify password matching using bcryptjs
 userSchema.methods.matchPassword = function (enteredPassword) {
-  if (!this.password.includes(':')) {
-    return enteredPassword === this.password;
+  if (!this.password) return false;
+  // Fallback for legacy unhashed or pbkdf2 passwords during migration
+  if (this.password.includes(':')) {
+    const crypto = require('crypto');
+    const [salt, storedHash] = this.password.split(':');
+    const hash = crypto.pbkdf2Sync(enteredPassword, salt, 1000, 64, 'sha512').toString('hex');
+    return storedHash === hash;
   }
-  const [salt, storedHash] = this.password.split(':');
-  const hash = crypto.pbkdf2Sync(enteredPassword, salt, 1000, 64, 'sha512').toString('hex');
-  return storedHash === hash;
+  return bcrypt.compareSync(enteredPassword, this.password);
 };
 
 const User = mongoose.model('User', userSchema);

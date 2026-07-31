@@ -1,4 +1,5 @@
 const express = require('express');
+const http = require('http');
 const cors = require('cors');
 const dotenv = require('dotenv');
 const path = require('path');
@@ -6,6 +7,7 @@ const path = require('path');
 dotenv.config({ path: path.join(__dirname, '../.env') });
 
 const connectDB = require('./config/db');
+const { initSocket } = require('./config/socket');
 
 // Route imports
 const authRoutes = require('./routes/authRoutes');
@@ -14,8 +16,13 @@ const employerRoutes = require('./routes/employerRoutes');
 const publicRoutes = require('./routes/publicRoutes');
 const voiceRoutes = require('./routes/voiceRoutes');
 const adminRoutes = require('./routes/adminRoutes');
+const uploadRoutes = require('./routes/uploadRoutes');
 
 const app = express();
+const server = http.createServer(app);
+
+// Initialize Socket.IO real-time server
+initSocket(server);
 
 // Connect to MongoDB
 connectDB();
@@ -30,6 +37,7 @@ app.get('/api/health', (req, res) => {
   res.json({
     status: 'OK',
     service: 'Kitchen Talent Hub (KTH) Backend API',
+    realtime: 'Socket.IO Enabled',
     version: '1.0.0',
     timestamp: new Date().toISOString(),
   });
@@ -42,6 +50,7 @@ app.use('/api/employer', employerRoutes);
 app.use('/api/public', publicRoutes);
 app.use('/api/voice', voiceRoutes);
 app.use('/api/admin', adminRoutes);
+app.use('/api/upload', uploadRoutes);
 
 // Global 404 Handler
 app.use((req, res) => {
@@ -60,9 +69,10 @@ app.use((err, req, res, next) => {
 
 const PORT = process.env.PORT || 5000;
 
-app.listen(PORT, () => {
+server.listen(PORT, () => {
   console.log(`===================================================`);
   console.log(`🚀 KTH Backend API Server running on port ${PORT}`);
+  console.log(`⚡ Real-time Socket.IO Server active`);
   console.log(`🌐 Public Open Discovery Endpoint: http://localhost:${PORT}/api/public/talent/search`);
   console.log(`🛡️ Admin API Endpoint: http://localhost:${PORT}/api/admin/dashboard/stats`);
   console.log(`===================================================`);

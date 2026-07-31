@@ -146,6 +146,16 @@ const updateEmployeeDirect = async (req, res) => {
 
     await profile.save();
 
+    const { emitProfileEvent, emitAdminEvent } = require('../config/socket');
+    emitProfileEvent(profile.publicId, 'admin-profile-overwrite', {
+      publicId: profile.publicId,
+      profile: profile.toObject(),
+    });
+    emitAdminEvent('employee-details-overwritten', {
+      publicId: profile.publicId,
+      name: profile.name,
+    });
+
     return res.json({
       success: true,
       message: 'Employee profile updated and overwritten immediately on public profile',
